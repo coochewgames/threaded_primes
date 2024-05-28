@@ -15,7 +15,10 @@ typedef struct
 
 
 volatile PRIME_LIST principle_list;
+
 static unsigned long NUMBER_RANGE_PER_THREAD = 1000UL;
+static unsigned long MAX_NUMBER_OF_THREADS = 128UL;
+
 
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number);
 static void *calculate_primes_in_range(void *params);
@@ -33,15 +36,32 @@ int main(void)
     PRIME_ENTRY *start_entry = add_prime_to_list(&principle_list, NULL, FIRST_PRIME_NUMBER);
     unsigned long last_number_checked = calculate_principal_primes(1, NUMBER_RANGE_PER_THREAD);
 
-    while (principle_list.last->prime < 1000000UL)
+    while (principle_list.last->prime < 3000000UL)
     {
+        unsigned long number_range_per_thread = NUMBER_RANGE_PER_THREAD;
         unsigned long thread_prime_limit = principle_list.last->prime * 2UL;
         unsigned long thread_range = thread_prime_limit - last_number_checked;
-        unsigned number_threads = (thread_range / NUMBER_RANGE_PER_THREAD) + 1;
+        unsigned number_threads = (thread_range / number_range_per_thread) + 1;
+
+        if (number_threads > MAX_NUMBER_OF_THREADS)
+        {
+            number_threads = MAX_NUMBER_OF_THREADS;
+            number_range_per_thread = thread_range / (number_threads - 1);
+
+            //  This number needs to be even
+            if (number_range_per_thread % 2 == 1)
+            {
+                number_range_per_thread--;
+            }
+        }
 
         pthread_t *thread_list = calloc(number_threads, sizeof(pthread_t));
 
-        printf("Number of threads:%u  Thread limit:%lu\n", number_threads, thread_prime_limit);
+        printf("Threads:%u  Thread limit:%lu  range:%lu  Time in secs: %lf\n",
+            number_threads,
+            thread_prime_limit,
+            number_range_per_thread,
+            ((double)(clock() - start_time)) / CLOCKS_PER_SEC);
 
         for (unsigned thread_count = 0; thread_count < number_threads; thread_count++)
         {
@@ -49,8 +69,8 @@ int main(void)
             THREAD_PARAMS params;
 
             params.entry = principle_list.last;
-            params.previous_number = last_number_checked + (NUMBER_RANGE_PER_THREAD * (unsigned long)thread_count);
-            params.end_number = last_number_checked + (NUMBER_RANGE_PER_THREAD * (unsigned long)(thread_count + 1));
+            params.previous_number = last_number_checked + (number_range_per_thread * (unsigned long)thread_count);
+            params.end_number = last_number_checked + (number_range_per_thread * (unsigned long)(thread_count + 1));
 
             if (params.end_number > thread_prime_limit)
             {
@@ -72,17 +92,16 @@ int main(void)
         last_number_checked = ++thread_prime_limit;
     }
 
-    end_time = clock();
-    cpu_time_used = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
-
     output_list(principle_list);
-    printf("Time in secs: %lf\n", cpu_time_used);
+    printf("Time in secs: %lf\n", ((double)(clock() - start_time)) / CLOCKS_PER_SEC);
+
+    free_list(principle_list);
     exit(0);
 }
 
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number)
 {
-    PRIME_ENTRY *new_entry = NULL;
+    PRIME_ENTRY *new_entry = principle_list.last;
     unsigned long next_number_to_check = previous_number;
     unsigned long last_number_checked = 0;
 
@@ -116,12 +135,15 @@ static void *calculate_primes_in_range(void *thread_params)
         }
     }
 
-    //  Make thread-safe
-    insert_prime_list(params.entry, range_list);
-
-    if (is_last == true)
+    if (range_list.first != NULL)
     {
-        principle_list.last = range_list.last;
+        //  Make thread-safe
+        insert_prime_list(params.entry, range_list);
+
+        if (is_last == true)
+        {
+            principle_list.last = range_list.last;
+        }
     }
 
     pthread_exit(NULL);

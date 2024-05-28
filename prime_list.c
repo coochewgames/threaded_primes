@@ -78,10 +78,24 @@ PRIME_ENTRY *get_next_entry(PRIME_ENTRY *entry)
 void output_list(PRIME_LIST list)
 {
     PRIME_ENTRY *entry = list.first;
+    unsigned long count = 0;
 
     while(entry != NULL)
     {
-        printf("%lu\n", entry->prime);
+        printf("%lu: %lu\n", ++count, entry->prime);
         entry = entry->next;
+    }
+}
+
+void free_list(PRIME_LIST list)
+{
+    PRIME_ENTRY *entry = list.first;
+
+    while(entry != NULL)
+    {
+        PRIME_ENTRY *next = entry->next;
+        free(entry);
+        
+        entry = next;
     }
 }

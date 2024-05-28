@@ -21,5 +21,6 @@ void insert_prime_list(PRIME_ENTRY *start_entry, PRIME_LIST new_list);
 
 PRIME_ENTRY *get_next_entry(PRIME_ENTRY *entry);
 void output_list(PRIME_LIST list);
+void free_list(PRIME_LIST list);
 
 #endif
