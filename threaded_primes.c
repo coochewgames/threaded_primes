@@ -163,7 +163,7 @@ static bool is_prime(unsigned long number_to_check)
         }
 
         entry = entry->next;
-    } while (entry != NULL);
+    } while (entry != NULL && entry->prime < (number_to_check / 2UL));
 
     return prime_found;
 }
