@@ -15,11 +15,13 @@ typedef struct
 
 
 volatile PRIME_LIST principle_list;
+pthread_mutex_t list_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static unsigned long NUMBER_RANGE_PER_THREAD = 1000UL;
 static unsigned long MAX_NUMBER_OF_THREADS = 128UL;
 
 
+static inline double calc_time(double start_time);
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number);
 static void *calculate_primes_in_range(void *params);
 static bool is_prime(unsigned long number_to_check);
@@ -27,11 +29,9 @@ static bool is_prime(unsigned long number_to_check);
 
 int main(void)
 {
-    clock_t start_time;
-    clock_t end_time;
-    double cpu_time_used;
+    clock_t start_time = clock();
 
-    start_time = clock();
+    pthread_mutex_init(&list_mutex, NULL);
 
     PRIME_ENTRY *start_entry = add_prime_to_list(&principle_list, NULL, FIRST_PRIME_NUMBER);
     unsigned long last_number_checked = calculate_principal_primes(1, NUMBER_RANGE_PER_THREAD);
@@ -61,7 +61,7 @@ int main(void)
             number_threads,
             thread_prime_limit,
             number_range_per_thread,
-            ((double)(clock() - start_time)) / CLOCKS_PER_SEC);
+            calc_time(start_time));
 
         for (unsigned thread_count = 0; thread_count < number_threads; thread_count++)
         {
@@ -93,10 +93,17 @@ int main(void)
     }
 
     output_list(principle_list);
-    printf("Time in secs: %lf\n", ((double)(clock() - start_time)) / CLOCKS_PER_SEC);
+    printf("Time in secs: %lf\n", calc_time(start_time));
 
+    pthread_mutex_destroy(&list_mutex);
     free_list(principle_list);
+
     exit(0);
+}
+
+static inline double calc_time(double start_time)
+{
+    return ((double)(clock() - start_time)) / CLOCKS_PER_SEC;
 }
 
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number)
@@ -137,8 +144,9 @@ static void *calculate_primes_in_range(void *thread_params)
 
     if (range_list.first != NULL)
     {
-        //  Make thread-safe
+        pthread_mutex_lock(&list_mutex);
         insert_prime_list(params.entry, range_list);
+        pthread_mutex_unlock(&list_mutex);
 
         if (is_last == true)
         {
