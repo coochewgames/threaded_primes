@@ -1,3 +1,5 @@
 *.dSYM
 *.txt
 .vscode/
+bin/*
+threaded

@@ -32,7 +32,6 @@ int main(void)
     struct timespec start_time;
 
     clock_gettime(CLOCK_REALTIME, &start_time);
-
     pthread_mutex_init(&list_mutex, NULL);
 
     PRIME_ENTRY *start_entry = add_prime_to_list(&principle_list, NULL, FIRST_PRIME_NUMBER);
