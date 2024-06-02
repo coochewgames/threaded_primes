@@ -21,7 +21,7 @@ static unsigned long NUMBER_RANGE_PER_THREAD = 1000UL;
 static unsigned long MAX_NUMBER_OF_THREADS = 128UL;
 
 
-static inline double calc_time(double start_time);
+static inline double calc_time(struct timespec start_time);
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number);
 static void *calculate_primes_in_range(void *params);
 static bool is_prime(unsigned long number_to_check);
@@ -29,7 +29,9 @@ static bool is_prime(unsigned long number_to_check);
 
 int main(void)
 {
-    clock_t start_time = clock();
+    struct timespec start_time;
+
+    clock_gettime(CLOCK_REALTIME, &start_time);
 
     pthread_mutex_init(&list_mutex, NULL);
 
@@ -102,9 +104,16 @@ int main(void)
     exit(0);
 }
 
-static inline double calc_time(double start_time)
+static inline double calc_time(struct timespec start_time)
 {
-    return ((double)(clock() - start_time)) / CLOCKS_PER_SEC;
+    struct timespec end_time;
+
+    clock_gettime(CLOCK_REALTIME, &end_time);
+
+    long seconds = end_time.tv_sec - start_time.tv_sec;
+    long nanoseconds = end_time.tv_nsec - start_time.tv_nsec;
+
+    return (double)seconds + ((double)nanoseconds * 1e-9);    
 }
 
 static unsigned long calculate_principal_primes(unsigned long previous_number, unsigned long end_number)
