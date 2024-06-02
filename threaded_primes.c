@@ -56,6 +56,7 @@ int main(void)
         }
 
         pthread_t *thread_list = calloc(number_threads, sizeof(pthread_t));
+        THREAD_PARAMS *params_list = calloc(number_threads, sizeof(THREAD_PARAMS));
 
         printf("Threads:%u  Thread limit:%lu  range:%lu  Time in secs: %lf\n",
             number_threads,
@@ -66,21 +67,20 @@ int main(void)
         for (unsigned thread_count = 0; thread_count < number_threads; thread_count++)
         {
             pthread_t thread_id;
-            THREAD_PARAMS params;
+            THREAD_PARAMS *params = (params_list + thread_count);
 
-            params.entry = principle_list.last;
-            params.previous_number = last_number_checked + (number_range_per_thread * (unsigned long)thread_count);
-            params.end_number = last_number_checked + (number_range_per_thread * (unsigned long)(thread_count + 1));
+            params->entry = principle_list.last;
+            params->previous_number = last_number_checked + (number_range_per_thread * (unsigned long)thread_count);
+            params->end_number = last_number_checked + (number_range_per_thread * (unsigned long)(thread_count + 1));
 
-            if (params.end_number > thread_prime_limit)
+            if (params->end_number > thread_prime_limit)
             {
-                params.end_number = thread_prime_limit;
+                params->end_number = thread_prime_limit;
             }
 
-            pthread_create(&thread_id, NULL, calculate_primes_in_range, &params);
+            pthread_create(&thread_id, NULL, calculate_primes_in_range, params);
 
             *(thread_list + thread_count) = thread_id;
-            pthread_join(thread_id, NULL);
         }
 
         for (unsigned thread_count = 0; thread_count < number_threads; thread_count++)
@@ -89,6 +89,7 @@ int main(void)
         }
 
         free(thread_list);
+        free(params_list);
         last_number_checked = ++thread_prime_limit;
     }
 
@@ -132,7 +133,6 @@ static void *calculate_primes_in_range(void *thread_params)
     unsigned long next_number_to_check = params.previous_number;
     PRIME_LIST range_list;
     PRIME_ENTRY *new_entry = NULL;
-    bool is_last = (params.entry->next == NULL) ? true : false;
 
     while ((next_number_to_check += 2UL) < params.end_number)
     {
@@ -144,11 +144,15 @@ static void *calculate_primes_in_range(void *thread_params)
 
     if (range_list.first != NULL)
     {
+        PRIME_ENTRY *last_entry_next = NULL;
+
         pthread_mutex_lock(&list_mutex);
-        insert_prime_list(params.entry, range_list);
+        last_entry_next = insert_prime_list(params.entry, range_list);
         pthread_mutex_unlock(&list_mutex);
 
-        if (is_last == true)
+        printf("Highest prime:%lu \n", range_list.last->prime);
+
+        if (last_entry_next == NULL)
         {
             principle_list.last = range_list.last;
         }

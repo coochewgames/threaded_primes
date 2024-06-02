@@ -44,11 +44,11 @@ static PRIME_ENTRY *create_prime_entry(PRIME_ENTRY *previous_entry, unsigned lon
     return new;
 }
 
-void insert_prime_list(PRIME_ENTRY *start_entry, PRIME_LIST new_list)
+PRIME_ENTRY *insert_prime_list(PRIME_ENTRY *start_entry, PRIME_LIST new_list)
 {
     if (new_list.first == NULL)
     {
-        return;
+        return NULL;
     }
 
     // Find the place in the list to insert the range of primes
@@ -68,6 +68,8 @@ void insert_prime_list(PRIME_ENTRY *start_entry, PRIME_LIST new_list)
 
     current_entry->next = new_list.first;
     new_list.last->next = previous_next;
+
+    return new_list.last->next;
 }
 
 PRIME_ENTRY *get_next_entry(PRIME_ENTRY *entry)
